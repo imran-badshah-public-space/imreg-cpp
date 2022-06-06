@@ -86,7 +86,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ImageSimple.cpp" />
-    <ClCompile Include="PartialDerivativeImageGradient.cpp" />
+    <ClCompile Include="PartialDerivativeImage.cpp" />
     <QtRcc Include="ImageRegistration.qrc" />
     <QtUic Include="ImageRegistration.ui" />
     <QtMoc Include="ImageRegistration.h" />
@@ -97,7 +97,7 @@
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="Image.h" />
     <ClInclude Include="ImageSimple.h" />
-    <ClInclude Include="PartialDerivativeImageGradient.h" />
+    <ClInclude Include="PartialDerivativeImage.h" />
     <ClInclude Include="stb_image_write.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
