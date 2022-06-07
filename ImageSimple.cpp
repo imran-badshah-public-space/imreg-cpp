@@ -30,6 +30,12 @@ int ImageSimple::getHeight() const
 	return height;
 }
 
+int ImageSimple::getChannels()
+{
+	return channels;
+}
+
+
 ImageSimple::ImageSimple(const char* filename)
 {
 	if (load(filename))
@@ -147,11 +153,8 @@ void ImageSimple::setPixelValueAt(stbi_uc pixelVal, int w, int h, int ch)
 	{
 		throw std::invalid_argument("Given dims exceed that of image's.");
 	}
-	int pos = ch * height * width + w * height + h;
+	int  pos = ch + channels * w + channels * width * h;
 	setPixelValueAt(pixelVal, pos);
-	/*pixels[w * height + h] = (stbi_uc)stbi__float2int(clipPixelVal(pixelVal));
-	pixels[w * height + h] = (stbi_uc)stbi__float2int(clipPixelVal(pixelVal));
-	pixels[w * height + h] = (stbi_uc)stbi__float2int(clipPixelVal(pixelVal));*/
 }
 
 void ImageSimple::setPixelValueAt(stbi_uc pixelVal, int pos)

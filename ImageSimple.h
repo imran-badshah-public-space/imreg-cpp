@@ -19,6 +19,7 @@ private:
 public:
 	int getWidth();
 	int getHeight();
+	int getChannels();
 	int getWidth() const;
 	int getHeight() const;
 
