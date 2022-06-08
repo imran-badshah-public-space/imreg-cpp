@@ -23,8 +23,8 @@ std::vector<unsigned char> PartialDerivativeImage::PartialDerivative(ImageSimple
 		auto [x, y] = to2DIndex(d, controlPointsDim);
 		int minX = std::max((x - 4) * controlPointsDim[0] + 1, 1);
 		int minY = std::max((y - 4) * controlPointsDim[1] + 1, 1);
-		int maxX = std::max((x)*controlPointsDim[0], imgWidth);
-		int maxY = std::max((y)*controlPointsDim[1], imgHeight);
+		int maxX = std::max((x) * controlPointsDim[0], imgWidth);
+		int maxY = std::max((y) * controlPointsDim[1], imgHeight);
 
 		uint8_t pdX = 0, pdY = 0;
 		ImageSimple phishifted = ImageSimple(*phi);
@@ -44,11 +44,11 @@ std::vector<unsigned char> PartialDerivativeImage::PartialDerivative(ImageSimple
 			}
 		}
 
-		double npd = sqrt(pow(pdX, 2) + pow(pdY, 2));
-		if (npd != 0)
+		double m_pd = sqrt(pow(pdX, 2) + pow(pdY, 2));
+		if (m_pd != 0)
 		{
-			pdX = pdX / npd;
-			pdY = pdY / npd;
+			pdX = pdX / m_pd;
+			pdY = pdY / m_pd;
 		}
 		gradientE[d] = pdX;
 		gradientE[D + d] = pdY;

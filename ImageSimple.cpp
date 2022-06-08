@@ -1,12 +1,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "ImageSimple.h"
-#include "stb_image.h"
-#include "stb_image_write.h"
 #include <stdint.h>
 #include <stdexcept>
 #include <iostream>
-
 
 #define CLIP_PIXELS(value) value < 0 ? 0 : (value > 255 ? 255 : value)
 
@@ -137,14 +134,7 @@ stbi_uc ImageSimple::getPixelValueAt(int pos) const
 
 stbi_uc ImageSimple::clipPixelVal(stbi_uc pixelVal)
 {
-
-	if (pixelVal < 0)
-	{
-		return 0;
-	} else if (pixelVal > 255)
-	{
-		return 255;
-	}
+	return CLIP_PIXELS(pixelVal);
 }
 
 void ImageSimple::setPixelValueAt(stbi_uc pixelVal, int w, int h, int ch)
@@ -163,7 +153,7 @@ void ImageSimple::setPixelValueAt(stbi_uc pixelVal, int pos)
 	{
 		throw std::invalid_argument("Given pos >= height * width * channels");
 	}
-	pixels[pos] = static_cast<stbi_uc>(clipPixelVal(pixelVal));
+	pixels[pos] = static_cast<stbi_uc>(CLIP_PIXELS(pixelVal));
 }
 
 void ImageSimple::substract(ImageSimple* diff, const ImageSimple* subtrahend)
