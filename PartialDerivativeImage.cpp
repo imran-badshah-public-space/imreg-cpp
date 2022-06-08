@@ -13,7 +13,7 @@ std::vector<unsigned char> PartialDerivativeImage::PartialDerivative(ImageSimple
 	ImageSimple diff = *templateImage - refImage;
 	std::vector<unsigned char> gradientE(D);
 
-	ImageSimple* forceX = nullptr, * forceY = nullptr, * gradX = nullptr, * gradY = nullptr;
+	ImageSimple* forceX = nullptr, * forceY = nullptr, * gradX = templateImage, * gradY = templateImage;
 	templateImage->gradient(gradX, gradY);
 	diff.dot(forceX, gradX);
 	diff.dot(forceY, gradY);

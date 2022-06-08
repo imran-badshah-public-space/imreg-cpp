@@ -37,10 +37,12 @@ public:
 	void setPixelValueAt(stbi_uc pixelVal, int w, int h, int ch);
 	void setPixelValueAt(stbi_uc pixelVal, int pos);
 	void substract(ImageSimple* diff, const ImageSimple* subtrahend);
+	void greyscale(ImageSimple* target);
 	void dot(ImageSimple* prod, ImageSimple* img2);
 	void gradient(ImageSimple* gradX, ImageSimple* gradY);
 
 	ImageSimple operator-(const ImageSimple* const subtrahend) const;
+	ImageSimple operator+(const ImageSimple* const addended) const;
 
 	ImageType get_file_type(const char* filename);
 };

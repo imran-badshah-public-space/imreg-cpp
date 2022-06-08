@@ -187,16 +187,83 @@ ImageSimple ImageSimple::operator-(const ImageSimple* const subtrahend) const
 	return diff;
 }
 
+ImageSimple ImageSimple::operator+(const ImageSimple* const addended) const
+{
+	if (addended->getWidth() != width || addended->getHeight() != height || addended->channels != channels)
+	{
+		throw std::invalid_argument("Dimensions of addends do not match.");
+	}
+
+	ImageSimple diff = ImageSimple(width, height, channels);
+	for (int d = 0; d < size; d++)
+	{
+		diff.setPixelValueAt(getPixelValueAt(d) + addended->getPixelValueAt(d), d);
+	}
+
+	return diff;
+}
+
 
 void ImageSimple::dot(ImageSimple* prod, ImageSimple* img2)
 {
+	if (
+		img2->getWidth() != width || img2->getHeight() != height || img2->channels != channels ||
+		prod->getWidth() != width || prod->getHeight() != height || prod->channels != channels
+		)
+	{
+		throw std::invalid_argument("Dimensions do not match.");
+	}
+	for (int i = 0; i < size; i++)
+	{
+		prod->setPixelValueAt(this->pixels[i] * img2->pixels[i], i);
+	}
+}
 
+void ImageSimple::greyscale(ImageSimple* target)
+{
+	//for (int i = 0; i < height * width; i += channels)
+	//{
+	//	// Super simple for now: (r+g+b)/3
+	//	int grey = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
+	//	target->setPixelValueAt(grey, i);
+	//}
+	target->channels = 1;
+	target->size = target->height * target->width * target->channels;
+	for (uint64_t k = 0; k < height * width; ++k)
+	{
+		target->pixels[k] = pixels[channels * k];
+	}
 }
 
 void ImageSimple::gradient(ImageSimple* gradX, ImageSimple* gradY)
 {
-
+	greyscale(gradX);
+	greyscale(gradY);
+	
+	ImageSimple blurImg(gradX->width, gradX->height, 1);
+	double gauss[9] = {
+		1 / 16., 2 / 16., 1 / 16.,
+		2 / 16., 4 / 16., 2 / 16.,
+		1 / 16., 2 / 16., 1 / 16.
+	};
+	//gradX->convolveLinear(0, 3, 3, gauss, 1, 1);
+	for (uint64_t k = 0; k < width * height; ++k)
+	{
+		blurImg.pixels[k] = gradX->pixels[k];
+	}
 }
+
+
+//Image& Image::convolve_linear(uint8_t channel, uint32_t ker_w, uint32_t ker_h, double ker[], uint32_t cr, uint32_t cc)
+//{
+//	if (ker_w * ker_h > 224)
+//	{
+//		return fd_convolve_clamp_to_0(channel, ker_w, ker_h, ker, cr, cc);
+//	} else
+//	{
+//		return std_convolve_clamp_to_0(channel, ker_w, ker_h, ker, cr, cc);
+//	}
+//}
 
 ImageType ImageSimple::get_file_type(const char* filename)
 {
