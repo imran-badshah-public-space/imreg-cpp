@@ -156,11 +156,6 @@ void ImageSimple::setPixelValueAt(stbi_uc pixelVal, int pos)
 	pixels[pos] = static_cast<stbi_uc>(CLIP_PIXELS(pixelVal));
 }
 
-void ImageSimple::substract(ImageSimple* diff, const ImageSimple* subtrahend)
-{
-	// Sanity check for dims and ch
-}
-
 ImageSimple ImageSimple::operator-(const ImageSimple* const subtrahend) const
 {
 	if (subtrahend->getWidth() != width || subtrahend->getHeight() != height || subtrahend->channels != channels)

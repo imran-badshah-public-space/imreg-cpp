@@ -30,9 +30,12 @@ int main(int argc, char* argv[])
 	ImageSimple diffed = test - &newImg;
 	diffed.write("diffed.jpg");
 
+	ImageSimple dotProd = test;
+	test.dot(&dotProd, &newImg);
+	dotProd.write("dotProd.jpg");
+
 	ImageSimple greyed = test;
 	test.greyscale(&greyed);
 	greyed.write("greyed.jpg");
-	//return a.exec();
 	return 0;
 }

@@ -1,4 +1,6 @@
 #include "PartialDerivativeImage.h"
+#include <math.h>
+#include <cmath>
 
 std::vector<unsigned char> PartialDerivativeImage::PartialDerivative(ImageSimple* phi, ImageSimple* refImage, ImageSimple* templateImage, int controlPointsDim[])
 {
@@ -23,8 +25,8 @@ std::vector<unsigned char> PartialDerivativeImage::PartialDerivative(ImageSimple
 		auto [x, y] = to2DIndex(d, controlPointsDim);
 		int minX = std::max((x - 4) * controlPointsDim[0] + 1, 1);
 		int minY = std::max((y - 4) * controlPointsDim[1] + 1, 1);
-		int maxX = std::max((x) * controlPointsDim[0], imgWidth);
-		int maxY = std::max((y) * controlPointsDim[1], imgHeight);
+		int maxX = std::max((x)*controlPointsDim[0], imgWidth);
+		int maxY = std::max((y)*controlPointsDim[1], imgHeight);
 
 		uint8_t pdX = 0, pdY = 0;
 		ImageSimple phishifted = ImageSimple(*phi);
@@ -69,8 +71,55 @@ std::tuple<int, int> PartialDerivativeImage::to2DIndex(int d, int dims[])
 	return std::make_tuple(x, y);
 }
 
-
 std::tuple<int, int> PartialDerivativeImage::Txy(int x, int y, const ImageSimple* const phi, int controlPointsDims[], int nControlPoints[])
 {
-	return std::make_tuple(2, 2); // TODO
+	auto a = std::floor(2.0);
+	auto i_temp = x / controlPointsDims[0];
+	auto j_temp = y / controlPointsDims[1];
+
+	auto is = std::floor(i_temp);
+	auto js = std::floor(j_temp);
+
+	auto u = i_temp - std::floor(i_temp);
+	auto v = j_temp - std::floor(j_temp);
+
+	auto offset = (nControlPoints[0] * nControlPoints[1]);
+
+	int res_x = 0;
+	int res_y = 0;
+
+
+	for (int l = 1; l <= 4; l++)
+	{
+		for (int m = 1; m <= 4; m++)
+		{
+			auto index = ((is + l + 1) - 1) * nControlPoints[0] + js + m + 1;
+			auto s = spline_basis(l - 1, u) * spline_basis(m - 1, v);
+			res_x = res_x + s * phi->getPixelValueAt(index);
+			if (index + offset < phi->getHeight())
+			{
+				res_y = res_y + s * phi->getPixelValueAt(index + offset);
+			}
+		}
+	}
+
+	return std::make_tuple(res_x, res_y);
+}
+
+double spline_basis(int i, double u)
+{
+	// Note: S_i ^ d(u) = S_i ^ 3(u) for cubic bsplines
+	switch (i)
+	{
+	case 0:
+		return (-1 * (u * u * u) + 3 * u * u - 3 * u + 1) / 6;
+	case 1:
+		return (3 * u * u * u - 6 * u * u + 4) / 6;
+	case 2:
+		return (-3 * u * u * u + 3 * u * u + 3 * u + 1) / 6;
+	case 3:
+		return u * u * u / 6;
+	default:
+		return 0;
+	}
 }

@@ -36,7 +36,6 @@ public:
 	stbi_uc getPixelValueAt(int pos) const;
 	void setPixelValueAt(stbi_uc pixelVal, int w, int h, int ch);
 	void setPixelValueAt(stbi_uc pixelVal, int pos);
-	void substract(ImageSimple* diff, const ImageSimple* subtrahend);
 	void greyscale(ImageSimple* target);
 	void dot(ImageSimple* prod, ImageSimple* img2);
 	void gradient(ImageSimple* gradX, ImageSimple* gradY);
