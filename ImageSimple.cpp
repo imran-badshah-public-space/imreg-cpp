@@ -45,13 +45,13 @@ ImageSimple::ImageSimple(const char* filename)
 	}
 }
 
-ImageSimple::ImageSimple(int w, int h, int ch) : width(w), height(h), channels(ch)
+ImageSimple::ImageSimple(int w, int h, int ch, int defaultPixelVal) : width(w), height(h), channels(ch)
 {
 	size = w * h * channels;
 	pixels = new stbi_uc[size];
 	for (int i = 0; i < size; i++)
 	{
-		pixels[i] = 255;
+		pixels[i] = defaultPixelVal;
 	}
 }
 

@@ -7,8 +7,8 @@ std::vector<unsigned char> PartialDerivativeImage::PartialDerivative(ImageSimple
 	int imgWidth = refImage->getWidth();
 	int imgHeight = refImage->getHeight();
 
-	int nCtrlY = static_cast<int>(ceil(imgHeight / controlPointsDim[0])) + 3; // +3 for cubic bsplines
-	int nCtrlX = static_cast<int>(ceil(imgWidth / controlPointsDim[1])) + 3;
+	int nCtrlY = (ceil(imgHeight / controlPointsDim[0])) + 3; // +3 for cubic bsplines
+	int nCtrlX = (ceil(imgWidth / controlPointsDim[1])) + 3;
 	int nControlPoints[2] = { nCtrlX, nCtrlY };
 
 	int D = nCtrlX * nCtrlY;
@@ -122,4 +122,29 @@ double spline_basis(int i, double u)
 	default:
 		return 0;
 	}
+}
+
+typedef struct dims_2D { int x; int y; };
+
+ImageSimple init_grid(dims_2D d_ctrl, dims_2D n_img)
+{
+	dims_2D n_ctrl;
+	n_ctrl.x = (ceil(n_img.x / d_ctrl.x)) + 3;
+	n_ctrl.y = (ceil(n_img.x /d_ctrl.x)) + 3;
+	
+	ImageSimple phi = ImageSimple(n_ctrl.x * n_ctrl.y * 2, 1, 1, 0);
+	int offset = n_ctrl.x * n_ctrl.y;
+
+	for (int j = 1; j <= n_ctrl.y; j++)
+	{
+		for (int i = 1; i <= n_ctrl.x; i++)
+		{
+			int lin_index_x = ((i - 1) * n_ctrl.x) + j;
+			int lin_index_y = ((i - 1) * n_ctrl.x) + j + offset;
+
+			phi.setPixelValueAt((i - 2) * d_ctrl.y, lin_index_x); // -2 to place one control point before the first pixels
+			phi.setPixelValueAt((j - 2) * d_ctrl.x, lin_index_y); // first pixel has coordinates (0,0)
+		}
+	}
+	return phi;
 }

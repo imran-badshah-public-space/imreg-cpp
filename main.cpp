@@ -9,6 +9,12 @@ int main(int argc, char* argv[])
 	w.show();*/
 	ImageSimple test("test.jpg");
 	ImageSimple newImg("test.jpg");
+
+
+	// https://github.com/Yuhala/image-processing-cpp/tree/master/ImageProcessing
+
+
+
 	for (int i = 0; i < (test.getHeight() / 2) * test.getWidth() * test.getChannels(); i++)
 	{
 		test.setPixelValueAt(0, i);

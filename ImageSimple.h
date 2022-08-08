@@ -24,7 +24,7 @@ public:
 	int getHeight() const;
 
 	ImageSimple(const char* filename);
-	ImageSimple(int w, int h, int ch = 1); // Assume greyscale
+	ImageSimple(int w, int h, int ch = 1, int defaultPixelVal = 255); // Assume greyscale
 	ImageSimple(const ImageSimple& img);
 	~ImageSimple();
 
