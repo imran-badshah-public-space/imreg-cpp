@@ -2,7 +2,7 @@
 #include <math.h>
 #include <cmath>
 
-std::vector<unsigned char> PartialDerivativeImage::PartialDerivative(ImageSimple* phi, ImageSimple* refImage, ImageSimple* templateImage, int controlPointsDim[])
+std::vector<unsigned char> PartialDerivative(ImageSimple* phi, ImageSimple* refImage, ImageSimple* templateImage, int controlPointsDim[])
 {
 	int imgWidth = refImage->getWidth();
 	int imgHeight = refImage->getHeight();
@@ -60,7 +60,7 @@ std::vector<unsigned char> PartialDerivativeImage::PartialDerivative(ImageSimple
 }
 
 
-std::tuple<int, int> PartialDerivativeImage::to2DIndex(int d, int dims[])
+std::tuple<int, int> to2DIndex(int d, int dims[])
 {
 	int x = ceil(d / dims[1]);
 	int y = d % dims[0];
@@ -71,7 +71,7 @@ std::tuple<int, int> PartialDerivativeImage::to2DIndex(int d, int dims[])
 	return std::make_tuple(x, y);
 }
 
-std::tuple<int, int> PartialDerivativeImage::Txy(int x, int y, const ImageSimple* const phi, int controlPointsDims[], int nControlPoints[])
+std::tuple<int, int> Txy(int x, int y, const ImageSimple* const phi, int controlPointsDims[], int nControlPoints[])
 {
 	auto a = std::floor(2.0);
 	auto i_temp = x / controlPointsDims[0];
