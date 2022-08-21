@@ -39,9 +39,11 @@ public:
 	void greyscale(ImageSimple* target);
 	void dot(ImageSimple* prod, ImageSimple* img2);
 	void gradient(ImageSimple* gradX, ImageSimple* gradY);
+	float ssd(ImageSimple trg);
 
 	ImageSimple operator-(const ImageSimple* const subtrahend) const;
 	ImageSimple operator+(const ImageSimple* const addended) const;
+	ImageSimple operator*(const stbi_uc scalar) const;
 
 	ImageType get_file_type(const char* filename);
 };

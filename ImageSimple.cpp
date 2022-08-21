@@ -188,6 +188,16 @@ ImageSimple ImageSimple::operator+(const ImageSimple* const addended) const
 	return diff;
 }
 
+ImageSimple ImageSimple::operator*(const stbi_uc scalar) const
+{
+	ImageSimple result = *this;
+	for (int d = 0; d < size; d++)
+	{
+		result.setPixelValueAt(this->getPixelValueAt(d) * scalar, d);
+	}
+	return result;
+}
+
 
 void ImageSimple::dot(ImageSimple* prod, ImageSimple* img2)
 {
@@ -236,6 +246,22 @@ void ImageSimple::gradient(ImageSimple* gradX, ImageSimple* gradY)
 	{
 		blurImg.pixels[k] = gradX->pixels[k];
 	}
+}
+
+
+float ImageSimple::ssd(ImageSimple trg)
+{
+	float sim = 0;
+	ImageSimple diff = *this - &trg;
+	for (uint64_t k = 0; k < width * height; ++k)
+	{
+		diff.pixels[k] *= diff.pixels[k];
+	}
+	for (uint64_t k = 0; k < width * height; ++k)
+	{
+		sim += diff.pixels[k];
+	}
+	return sim / (width * height);
 }
 
 

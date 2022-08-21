@@ -96,7 +96,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ImageSimple.cpp" />
-    <ClCompile Include="PartialDerivativeImage.cpp" />
+    <ClCompile Include="PartialDerivativeImage.hpp" />
     <QtRcc Include="ImageRegistration.qrc" />
     <QtUic Include="ImageRegistration.ui" />
     <QtMoc Include="ImageRegistration.h" />
