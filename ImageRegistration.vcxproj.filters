@@ -40,11 +40,11 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PartialDerivativeImage.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ImageSimple.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PartialDerivativeImage.hpp">
+      <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

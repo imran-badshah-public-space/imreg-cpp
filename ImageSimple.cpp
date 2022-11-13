@@ -27,11 +27,25 @@ int ImageSimple::getHeight() const
 	return height;
 }
 
+int ImageSimple::getChannels() const
+{
+	return channels;
+}
+
 int ImageSimple::getChannels()
 {
 	return channels;
 }
 
+size_t ImageSimple::getSize() const
+{
+	return size;
+}
+
+size_t ImageSimple::getSize()
+{
+	return size;
+}
 
 ImageSimple::ImageSimple(const char* filename)
 {
@@ -48,17 +62,35 @@ ImageSimple::ImageSimple(const char* filename)
 ImageSimple::ImageSimple(int w, int h, int ch, int defaultPixelVal) : width(w), height(h), channels(ch)
 {
 	size = w * h * channels;
-	pixels = new stbi_uc[size];
+	//pixels = new stbi_uc[size]; // 20221018
+	pixels = reinterpret_cast<stbi_uc*>(malloc(size));
+	if (!pixels)
+	{
+		std::cout << "Error trying to malloc pixels with provided value" << std::endl;
+		exit(1);
+	}
 	for (int i = 0; i < size; i++)
 	{
 		pixels[i] = defaultPixelVal;
 	}
 }
 
+//ImageSimple::ImageSimple(const ImageSimple& img)
 ImageSimple::ImageSimple(const ImageSimple& img) : ImageSimple(img.width, img.height, img.channels)
 {
 	size = img.size;
-	memcpy(pixels, img.pixels, sizeof(stbi_uc) * size);
+	pixels = reinterpret_cast<stbi_uc*>(malloc(size)); // 20221018
+	if (!pixels)
+	{
+		std::cout << "Error trying to malloc pixels with provided value" << std::endl;
+		exit(1);
+	}
+	for (int i = 0; i < size; i++)
+	{
+		pixels[i] = img.pixels[i];
+	}
+	//memcpy(pixels, img.pixels, sizeof(stbi_uc) * size); // 20221018
+	//memcpy(this, &img, sizeof(ImageSimple));
 }
 
 ImageSimple::~ImageSimple()
@@ -68,7 +100,7 @@ ImageSimple::~ImageSimple()
 
 bool ImageSimple::load(const char* filename)
 {
-	pixels = reinterpret_cast<stbi_uc*>(stbi_load(filename, &width, &height, &channels, 3));
+	pixels = reinterpret_cast<stbi_uc*>(stbi_load(filename, &width, &height, &channels, 0));
 	return pixels != nullptr;
 }
 
@@ -104,13 +136,26 @@ bool ImageSimple::write(const char* filename)
 	}
 }
 
+stbi_uc const ImageSimple::getPixelValueAt(int w, int h, int ch) const
+{
+	if (w >= width || h >= height || ch >= channels)
+	{
+		throw std::invalid_argument("Given dims exceed that of image's.");
+	}
+	//int pos = ch * height * width + w * height + h;
+	int  pos = ch + channels * w + channels * width * h;
+	return getPixelValueAt(pos);
+}
+
+
 stbi_uc ImageSimple::getPixelValueAt(int w, int h, int ch)
 {
 	if (w >= width || h >= height || ch >= channels)
 	{
 		throw std::invalid_argument("Given dims exceed that of image's.");
 	}
-	int pos = ch * height * width + w * height + h;
+	//int pos = ch * height * width + w * height + h;
+	int  pos = ch + channels * w + channels * width * h;
 	return getPixelValueAt(pos);
 }
 
@@ -144,6 +189,7 @@ void ImageSimple::setPixelValueAt(stbi_uc pixelVal, int w, int h, int ch)
 		throw std::invalid_argument("Given dims exceed that of image's.");
 	}
 	int  pos = ch + channels * w + channels * width * h;
+	//int pos = ch * height * width + w * height + h;
 	setPixelValueAt(pixelVal, pos);
 }
 
@@ -198,7 +244,7 @@ ImageSimple ImageSimple::operator*(const stbi_uc scalar) const
 	return result;
 }
 
-
+// TODO: Rename this func
 void ImageSimple::dot(ImageSimple* prod, ImageSimple* img2)
 {
 	if (
@@ -222,6 +268,10 @@ void ImageSimple::greyscale(ImageSimple* target)
 	//	int grey = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
 	//	target->setPixelValueAt(grey, i);
 	//}
+	if (target->channels == 1)
+	{
+		return;
+	}
 	target->channels = 1;
 	target->size = target->height * target->width * target->channels;
 	for (uint64_t k = 0; k < height * width; ++k)
@@ -234,34 +284,123 @@ void ImageSimple::gradient(ImageSimple* gradX, ImageSimple* gradY)
 {
 	greyscale(gradX);
 	greyscale(gradY);
+	ImageSimple greyed = *this;
+	this->greyscale(&greyed);
 	
-	ImageSimple blurImg(gradX->width, gradX->height, 1);
-	double gauss[9] = {
+	//ImageSimple blurImg(gradX->width, gradX->height, 1); // 20221018
+	// TODO: Create profiles
+	/*double gauss[9] = {
 		1 / 16., 2 / 16., 1 / 16.,
 		2 / 16., 4 / 16., 2 / 16.,
 		1 / 16., 2 / 16., 1 / 16.
-	};
+	};*/
 	//gradX->convolveLinear(0, 3, 3, gauss, 1, 1);
-	for (uint64_t k = 0; k < width * height; ++k)
+	/*for (uint64_t k = 0; k < width * height; ++k)
 	{
 		blurImg.pixels[k] = gradX->pixels[k];
+	}*/
+	/*double sobel_x[9] = {
+		1, 0, -1,
+		2, 0, -2,
+		1, 0, -1
+	};
+	double sobel_y[9] = {
+		1, 2, 1,
+		0, 0, 0,
+		-1, -2, -1
+	};*/
+	//for (uint64_t i = 1; i < gradX->getWidth() - 1; i++)
+	//{
+	//	for (uint64_t j = 1; j < gradX->getHeight() - 1; j++)
+	//	{
+	//		auto valX = sobel_x[0] * greyed.getPixelValueAt(i - 1, j - 1, 0) + 
+	//					sobel_x[2] * greyed.getPixelValueAt(i + 1, j - 1, 0) + 
+	//					sobel_x[3] * greyed.getPixelValueAt(i - 1, j, 0) +
+	//					sobel_x[5] * greyed.getPixelValueAt(i + 1, j, 0) +
+	//					sobel_x[6] * greyed.getPixelValueAt(i - 1, j + 1, 0) +
+	//					sobel_x[8] * greyed.getPixelValueAt(i + 1, j + 1, 0);
+
+	//		auto valY = sobel_y[0] * greyed.getPixelValueAt(i - 1, j - 1, 0) +
+	//					sobel_y[1] * greyed.getPixelValueAt(i, j - 1, 0) +
+	//					sobel_y[2] * greyed.getPixelValueAt(i + 1, j - 1, 0) +
+	//					sobel_y[6] * greyed.getPixelValueAt(i - 1, j + 1, 0) +
+	//					sobel_y[7] * greyed.getPixelValueAt(i, j + 1, 0) +
+	//					sobel_y[8] * greyed.getPixelValueAt(i + 1, j + 1, 0);
+	//		gradX->setPixelValueAt(valX, i, j, 0);
+	//		gradY->setPixelValueAt(valY, i, j, 0);
+	//	}
+	//	// TODO: Guard against borders
+	//	// https://stackoverflow.com/questions/45047672/sobel-filter-algorithm-c-no-libraries
+	//}
+	//double sobel_x[7][7] = {
+	//	{-3 / 18, -2 / 13, -1 / 10, 0,  1 / 10, 2 / 13, 3 / 18},
+	//	{-3 / 13, -2 / 8,  -1 / 5,  0,  1 / 5,  2 / 8,  3 / 13},
+	//	{-3 / 10, -2 / 5,  -1 / 2,  0,  1 / 2,  2 / 5,  3 / 10},
+	//	{-3 / 9,  -2 / 4,  -1 / 1,  0,  1 / 1,  2 / 4,  3 / 9} ,
+	//	{-3 / 10, -2 / 5,  -1 / 2,  0,  1 / 2,  2 / 5,  3 / 10},
+	//	{-3 / 13, -2 / 8,  -1 / 5,  0,  1 / 5,  2 / 8,  3 / 13},
+	//	{-3 / 18, -2 / 13, -1 / 10, 0,  1 / 10, 2 / 13, 3 / 18}
+	//};
+	//// TODO: transpose https://stackoverflow.com/a/16743203
+	//double sobel_y[7][7] = {
+	//	{-1 / 6, -3 / 13, -3 / 10, -1 / 3, -3 / 10, -3 / 13, -1 / 6},
+	//	{-2 / 13, -1 / 4, -2 / 5, -1 / 2, -2 / 5, -1 / 4, -2 / 13},
+	//	{-1 / 10, -1 / 5, -1 / 2, -1,     -1 / 2, -1 / 5, -1 / 10},
+	//	{0,       0,     0,     0,     0,     0,     0},
+	//	{1 / 10, 1 / 5,     1 / 2,     1,     1 / 2,     1 / 5,     1 / 10},
+	//	{2 / 13, 1 / 4,     2 / 5,     1 / 2,     2 / 5,     1 / 4,     2 / 13},
+	//	{1 / 6,     3 / 13, 3 / 10, 1 / 3,     3 / 10, 3 / 13, 1 / 6}
+	//};
+	double sobel_x[3][3] = {
+		{ 1, 0, -1 },
+		{ 2, 0, -2 },
+		{ 1, 0, -1 }
+	};
+	double sobel_y[3][3] = {
+		{ 1, 2, 1 },
+		{ 0, 0, 0 },
+		{ -1, -2, -1 }
+	};
+
+	int maskWidth = sizeof sobel_x / sizeof sobel_x[0];
+	int maskHeight = sizeof sobel_x[0] / sizeof(double);
+
+	for (uint64_t i = floor(maskWidth / 2); i < gradX->getWidth() - 1; i++)
+	{
+		for (uint64_t j = floor(maskHeight / 2); j < gradX->getHeight() - 1; j++)
+		{
+			
+			stbi_uc valX = 0;
+			stbi_uc valY = 0;
+			for (int u = -floor(maskWidth / 2); u < ceil(maskWidth / 2); u++)
+			{
+				for (int v = -floor(maskHeight / 2); v < ceil(maskHeight / 2); v++)
+				{
+					valX += sobel_x[u + (int)floor(maskWidth / 2)][v + (int)floor(maskHeight / 2)] * greyed.getPixelValueAt(i + u, j + v, 0);
+					valY += sobel_y[u + (int)floor(maskWidth / 2)][v + (int)floor(maskHeight / 2)] * greyed.getPixelValueAt(i + u, j + v, 0);
+				}
+			}
+			gradX->setPixelValueAt(valX, i, j, 0);
+			gradY->setPixelValueAt(valY, i, j, 0);
+		}
 	}
+
 }
 
 
-float ImageSimple::ssd(ImageSimple trg)
+float ImageSimple::ssd(ImageSimple const *trg)
 {
 	float sim = 0;
-	ImageSimple diff = *this - &trg;
-	for (uint64_t k = 0; k < width * height; ++k)
+	ImageSimple diff = *this - trg;
+	for (uint64_t k = 0; k < size; ++k)
 	{
 		diff.pixels[k] *= diff.pixels[k];
 	}
-	for (uint64_t k = 0; k < width * height; ++k)
+	for (uint64_t k = 0; k < size; ++k)
 	{
 		sim += diff.pixels[k];
 	}
-	return sim / (width * height);
+	return sim / size;
 }
 
 
