@@ -32,6 +32,20 @@ int main(int argc, char* argv[])
 	//	}
 	//}
 
+	////const int w = newImg.getWidth();
+	////const int h = newImg.getHeight();
+	  //
+	////for (int i = 0; i < w; i++)
+	////{
+	////	for (int j = 0; j < h; j++)
+	////	{
+	////		for (int k = 0; k < newImg.getChannels(); k++)
+	////		{
+	////			newImg.setPixelValueAt(test.getPixelValueAt(w - 1 - i, h - 1 - j, k), i, j, k);
+	////		}
+	////	}
+	////}
+
 	//test.write("new1.jpg");
 	//newImg.write("new2.jpg");
 
@@ -61,10 +75,10 @@ int main(int argc, char* argv[])
 	n_img.x = original.getWidth();
 	n_img.y = original.getHeight();
 
-	ImageSimple phi = init_grid(d_ctrl, n_img);
+	std::vector<float> phi = init_grid(d_ctrl, n_img);
 	dims_2D n_ctrl = calculateNumberOfCtrlPts(d_ctrl, n_img);
 
-	int n_iter = 10;
+	int n_iter = 50;
 	float lambda = 5.0;
 
 	ImageSimple warpedTmpl = tmpl;
@@ -78,42 +92,39 @@ int main(int argc, char* argv[])
 	auto timeNow = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	char* timeNowCharPtr = std::ctime(&timeNow);
 	timeNowCharPtr[strlen(timeNowCharPtr) - 1] = '\0';
+	float ssd_prev = 100;
 
 	for (int iter = 1; iter <= n_iter; iter++)
 	{
-		std::printf("Iteration %d of %d.\n", iter, n_iter);
-		std::printf("SSD dissimilarity: %f\n", greyedOriginal.ssd(&warpedTmpl));
+		float ssd_current = greyedOriginal.ssd(&warpedTmpl);
+		std::printf("\nIteration %d of %d.\n", iter, n_iter);
+		std::printf("SSD dissimilarity: %f\n", ssd_current);
 
-		dims_2D ctrl_dims = {.x=d_ctrl.x, .y=d_ctrl.y};
-
-		auto partial_derivative = PartialDerivative(&phi, &greyedOriginal, &greyedTmpl, ctrl_dims);
+		auto partial_derivative = PartialDerivative(&phi, &greyedOriginal, &greyedTmpl, d_ctrl);
 
 		/* Apply update to the control points */
-		//phi = phi - std::transform(partial_derivative.cbegin(), partial_derivative.cend(), partial_derivative.begin(), [lambda](unsigned char c) { return c * lambda; });
-		lambda *= 0.5;
-		ImageSimple incremented_partial_derivative = partial_derivative * lambda;
-		phi.write("20220913_midnight_phi_1.jpg");
-		phi = phi - &(incremented_partial_derivative); // TODO: Substracting and overwriting
-		phi.write("20220913_midnight_phi_2.jpg");
+		if (ssd_prev - ssd_current)
+		{
+			lambda *= 0.5;
+		}
+		std::vector<float> incremented_partial_derivative(phi);
+		std::transform(partial_derivative.begin(), partial_derivative.end(), incremented_partial_derivative.begin(), [lambda](unsigned char c) { return c * lambda; });
+		std::transform(phi.begin(), phi.end(), incremented_partial_derivative.begin(), phi.begin(), std::minus<float>());
 		auto [u_x, u_y] = get_displacement(&phi, d_ctrl, n_ctrl, n_img);
 		warp(warpedTmpl, &greyedTmpl, &u_x, &u_y, n_img);
-		//warpedTmpl.write("warpedTmpl.jpg");
-		warpedTmpl.write("20220913_midnight_warpedTmpl.jpg");
-		if (iter != n_iter)
+		if (iter == n_iter)
 		{
 			std::printf("Writing files.\n");
-			partial_derivative.write("20220913_midnight_partial_derivative.jpg");
+			printf("partial_derivative 000: %f", partial_derivative.at(0));
 			u_x.write("20220913_midnight_u_x.jpg");
 			u_y.write("20220913_midnight_u_y.jpg");
 			std::printf("Written files.\n");
-			//return 0;
 		}
-		
 		//warpedTmpl.write(strcat(timeNowCharPtr, "_warpedTmpl.jpg"));
 	}
 
 	std::printf("Final Writing files.\n");
-	phi.write("20220913_midnight_phi.jpg");
+	printf("phi 000: %f", phi.at(0));
 	warpedTmpl.write("20220913_midnight_warpedTmpl.jpg");
 
 	return 0;

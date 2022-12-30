@@ -142,7 +142,6 @@ stbi_uc const ImageSimple::getPixelValueAt(int w, int h, int ch) const
 	{
 		throw std::invalid_argument("Given dims exceed that of image's.");
 	}
-	//int pos = ch * height * width + w * height + h;
 	int  pos = ch + channels * w + channels * width * h;
 	return getPixelValueAt(pos);
 }
@@ -156,6 +155,7 @@ stbi_uc ImageSimple::getPixelValueAt(int w, int h, int ch)
 	}
 	//int pos = ch * height * width + w * height + h;
 	int  pos = ch + channels * w + channels * width * h;
+	//int  pos = w + width * ch + channels * width * h;
 	return getPixelValueAt(pos);
 }
 
@@ -189,7 +189,6 @@ void ImageSimple::setPixelValueAt(stbi_uc pixelVal, int w, int h, int ch)
 		throw std::invalid_argument("Given dims exceed that of image's.");
 	}
 	int  pos = ch + channels * w + channels * width * h;
-	//int pos = ch * height * width + w * height + h;
 	setPixelValueAt(pixelVal, pos);
 }
 

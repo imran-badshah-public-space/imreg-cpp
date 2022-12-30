@@ -1,6 +1,6 @@
 #include "PartialDerivativeImage.h"
 
-ImageSimple PartialDerivative(ImageSimple* phi, ImageSimple* refImage, ImageSimple* templateImage, dims_2D controlPointsDim)
+std::vector<float> PartialDerivative(std::vector<float>* phi, ImageSimple* refImage, ImageSimple* templateImage, dims_2D controlPointsDim)
 {
 	dims_2D n_img;
 	n_img.x = refImage->getWidth();
@@ -9,14 +9,18 @@ ImageSimple PartialDerivative(ImageSimple* phi, ImageSimple* refImage, ImageSimp
 	int D = nControlPoints.x * nControlPoints.y;
 
 	ImageSimple diff = *templateImage - refImage;
-	ImageSimple gradientE = *phi;
+	std::vector<float> gradientE(*phi);
 
 	ImageSimple forceX = *templateImage, forceY = *templateImage, gradX = *templateImage, gradY = *templateImage;
 	templateImage->gradient(&gradX, &gradY);
 	diff.dot(&forceX, &gradX);
 	diff.dot(&forceY, &gradY);
-	gradX.write("20221020_gradX.jpg");
-	gradY.write("20221020_gradY.jpg");
+
+	diff.write("20221013_diff.jpg");
+	forceX.write("20221013_forceX.jpg");
+	forceY.write("20221013_forceY.jpg");
+	gradX.write("20221013_gradX.jpg");
+	gradY.write("20221013_gradY.jpg");
 
 	for (int d = 0; d < D; d++)
 	{
@@ -25,19 +29,16 @@ ImageSimple PartialDerivative(ImageSimple* phi, ImageSimple* refImage, ImageSimp
 			std::printf("PD iter: %d of %d.\n", d, D);
 		}
 		auto [x, y] = to2DIndex(d, nControlPoints);
-		// int minX = std::max((x - 4) * controlPointsDim.x + 1, 1);
-		// int minY = std::max((y - 4) * controlPointsDim.y + 1, 1);
 		int minX = std::max((x - 4) * controlPointsDim.x, 0);
 		int minY = std::max((y - 4) * controlPointsDim.y, 0);
-		int maxX = std::min((x)*controlPointsDim.x, n_img.x - 1);
-		int maxY = std::min((y)*controlPointsDim.y, n_img.y - 1);
+		int maxX = std::min((x)*controlPointsDim.x - 1, n_img.x - 1);
+		int maxY = std::min((y)*controlPointsDim.y - 1, n_img.y - 1);
 
 		uint8_t pdX = 0, pdY = 0;
-		ImageSimple phishifted = ImageSimple(*phi);
-		phishifted.setPixelValueAt(phishifted.getPixelValueAt(d) + 1, d);
-		phishifted.setPixelValueAt(phishifted.getPixelValueAt(d + D) + 1, d + D);
+		std::vector<float> phishifted(*phi);
+		phishifted.at(d) = phishifted.at(d) + 1;
+		phishifted.at(d + D) = phishifted.at(d + D) + 1;
 
-		// TODO: for (int lx = minX; lx <= maxX; lx++)
 		for (int lx = minX; lx < maxX; lx++)
 		{
 			for (int ly = minY; ly < maxY; ly++)
@@ -57,8 +58,8 @@ ImageSimple PartialDerivative(ImageSimple* phi, ImageSimple* refImage, ImageSimp
 			pdX = pdX / m_pd;
 			pdY = pdY / m_pd;
 		}
-		gradientE.setPixelValueAt(pdX, d);
-		gradientE.setPixelValueAt(pdY, D + d); // TODO: `D+d` bigger than than the initialised dims
+		gradientE.at(d) = pdX;
+		gradientE.at(D + d) = pdY;
 	}
 
 	return gradientE;
@@ -69,20 +70,16 @@ std::tuple<int, int> to2DIndex(int d, dims_2D dims)
 {
 	int x = ceil(d / dims.y);
 	int y = d % dims.y;
-	/*if (y == 0)
-	{
-		y = dims.y;
-	}*/
 	return std::make_tuple(x, y);
 }
 
-std::tuple<int, int> Txy(int x, int y, const ImageSimple* const phi, dims_2D controlPointsDims, dims_2D nControlPoints)
+std::tuple<int, int> Txy(int x, int y, const std::vector<float>* const phi, dims_2D controlPointsDims, dims_2D nControlPoints)
 {
-	auto i_temp = x / controlPointsDims.x;
-	auto j_temp = y / controlPointsDims.y;
+	double i_temp = (double)x / controlPointsDims.x;
+	double j_temp = (double)y / controlPointsDims.y;
 
-	auto is = std::floor(i_temp);
-	auto js = std::floor(j_temp);
+	auto is = std::floor(i_temp) - 1;
+	auto js = std::floor(j_temp) - 1;
 
 	auto u = i_temp - std::floor(i_temp);
 	auto v = j_temp - std::floor(j_temp);
@@ -97,12 +94,12 @@ std::tuple<int, int> Txy(int x, int y, const ImageSimple* const phi, dims_2D con
 	{
 		for (int m = 1; m <= 4; m++)
 		{
-			auto index = ((is + l + 1) - 1) * nControlPoints.y + js + m + 1;
+			auto index = (((is + l + 1) - 1) * nControlPoints.y + js + m + 1) - 1;
 			auto s = spline_basis(l - 1, u) * spline_basis(m - 1, v);
-			res_x = res_x + s * phi->getPixelValueAt(index);
-			if (index + offset < phi->getHeight())
+			res_x = res_x + s * phi->at(index);
+			if (index + offset < phi->size())
 			{
-				res_y = res_y + s * phi->getPixelValueAt(index + offset);
+				res_y = res_y + s * phi->at(index + offset);
 			}
 		}
 	}
@@ -128,24 +125,23 @@ double spline_basis(int i, double u)
 	}
 }
 
-ImageSimple init_grid(dims_2D d_ctrl, dims_2D n_img)
+std::vector<float> init_grid(dims_2D d_ctrl, dims_2D n_img)
 {
 	dims_2D n_ctrl = calculateNumberOfCtrlPts(d_ctrl, n_img);
 
-	ImageSimple phi = ImageSimple(n_ctrl.x * n_ctrl.y * 2, 1, 1, 0);
+	std::vector<float> phi(n_ctrl.x * n_ctrl.y * 2, 0);
+	
 	int offset = n_ctrl.x * n_ctrl.y;
 
 	for (int j = 0; j < n_ctrl.y; j++)
 	{
 		for (int i = 0; i < n_ctrl.x; i++)
 		{
-			// int lin_index_x = ((i - 1)*n_ctrl.x) + j;
-			// int lin_index_y = ((i - 1)*n_ctrl.x) + j + offset;
 			int lin_index_x = ((i)*n_ctrl.y) + j;
 			int lin_index_y = ((i)*n_ctrl.y) + j + offset;
 
-			phi.setPixelValueAt((i - 1) * d_ctrl.x, lin_index_x); // -1 to place one control point before the first pixels
-			phi.setPixelValueAt((j - 1) * d_ctrl.y, lin_index_y); // first pixel has coordinates (0,0)
+			phi.at(lin_index_x) = (i - 1) * d_ctrl.x; // -1 to place one control point before the first pixels
+			phi.at(lin_index_y) = (j - 1) * d_ctrl.y; // first pixel has coordinates (0,0)
 		}
 	}
 	return phi;
@@ -159,10 +155,10 @@ dims_2D calculateNumberOfCtrlPts(dims_2D d_ctrl, dims_2D n_img)
 	return n_ctrl;
 }
 
-std::tuple<ImageSimple, ImageSimple> get_displacement(const ImageSimple* const phi, dims_2D d_ctrl, dims_2D n_ctrl, dims_2D n_img)
+std::tuple<ImageSimple, ImageSimple> get_displacement(const std::vector<float>* const phi, dims_2D d_ctrl, dims_2D n_ctrl, dims_2D n_img)
 {
 	ImageSimple u_x = ImageSimple(n_img.x, n_img.y, 1, 0);
-	ImageSimple u_y = u_x;
+	ImageSimple u_y = ImageSimple(n_img.x, n_img.y, 1, 0);
 
 	for (int x = 0; x < n_img.x; x++)
 	{
@@ -182,7 +178,7 @@ void warp(ImageSimple& target, const ImageSimple const* tmpl, const ImageSimple 
 	{
 		for (int y = 0; y < n_img.y; y++)
 		{
-			auto a = get_bilinear(tmpl, disp_x->getPixelValueAt(x, y, 0) + x, y + disp_y->getPixelValueAt(x, y, 0));
+			auto a = get_bilinear(tmpl, disp_x->getPixelValueAt(x, y, 0), disp_y->getPixelValueAt(x, y, 0));
 			target.setPixelValueAt(
 				a,
 				x,
