@@ -5,6 +5,11 @@ VisualStudioVersion = 17.1.32407.343
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImageRegistration", "ImageRegistration.vcxproj", "{C2A2ED9C-9395-4853-B42B-6C0233F567A4}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{5BB66825-DCA1-4155-AF09-FC7B479F9FE8}"
+	ProjectSection(SolutionItems) = preProject
+		MatrixSimple.h = MatrixSimple.h
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64

@@ -1,26 +1,36 @@
 #include "PartialDerivativeImage.h"
+#include <iostream>
 
-std::vector<float> PartialDerivative(std::vector<float>* phi, ImageSimple* refImage, ImageSimple* templateImage, dims_2D controlPointsDim)
+std::vector<double> PartialDerivative(std::vector<double>* phi, MatrixSimple* refImage, MatrixSimple* templateImage, dims_2D controlPointsDim)
 {
 	dims_2D n_img;
-	n_img.x = refImage->getWidth();
-	n_img.y = refImage->getHeight();
+	auto [width, height] = refImage->getDims();
+	n_img.x = width;
+	n_img.y = height;
 	dims_2D nControlPoints = calculateNumberOfCtrlPts(controlPointsDim, n_img);
 	int D = nControlPoints.x * nControlPoints.y;
 
-	ImageSimple diff = *templateImage - refImage;
-	std::vector<float> gradientE(*phi);
+	//ImageSimple diff = *templateImage - refImage;
+	//MatrixSimple refImageMat = refImage->transformToMatrix();
+	//MatrixSimple tmplImageMat = templateImage->transformToMatrix();
+	MatrixSimple diff = *templateImage - refImage;
+	std::vector<double> gradientE(D * 2, 0);
 
-	ImageSimple forceX = *templateImage, forceY = *templateImage, gradX = *templateImage, gradY = *templateImage;
+	MatrixSimple forceX = *templateImage, forceY = *templateImage;
+	MatrixSimple gradX = *templateImage, gradY = *templateImage;
+
 	templateImage->gradient(&gradX, &gradY);
+	/*MatrixSimple gradXMat = gradX.transformToMatrix();
+	MatrixSimple gradYMat = gradY.transformToMatrix();*/
 	diff.dot(&forceX, &gradX);
 	diff.dot(&forceY, &gradY);
 
-	diff.write("20221013_diff.jpg");
-	forceX.write("20221013_forceX.jpg");
-	forceY.write("20221013_forceY.jpg");
-	gradX.write("20221013_gradX.jpg");
-	gradY.write("20221013_gradY.jpg");
+	ImageSimple(diff).write("20221013_diff.jpg");
+	//ImageSimple(*templateImage).write("20221013_templateImage_PD.jpg");
+	ImageSimple(forceX).write("20221013_forceX.jpg");
+	ImageSimple(forceY).write("20221013_forceY.jpg");
+	ImageSimple(gradX).write("20221013_gradX.jpg");
+	ImageSimple(gradY).write("20221013_gradY.jpg");
 
 	for (int d = 0; d < D; d++)
 	{
@@ -34,8 +44,8 @@ std::vector<float> PartialDerivative(std::vector<float>* phi, ImageSimple* refIm
 		int maxX = std::min((x)*controlPointsDim.x - 1, n_img.x - 1);
 		int maxY = std::min((y)*controlPointsDim.y - 1, n_img.y - 1);
 
-		uint8_t pdX = 0, pdY = 0;
-		std::vector<float> phishifted(*phi);
+		double pdX = 0, pdY = 0;
+		std::vector<double> phishifted(*phi);
 		phishifted.at(d) = phishifted.at(d) + 1;
 		phishifted.at(d + D) = phishifted.at(d + D) + 1;
 
@@ -45,10 +55,10 @@ std::vector<float> PartialDerivative(std::vector<float>* phi, ImageSimple* refIm
 			{
 				auto [res_x1, res_y1] = Txy(lx, ly, phi, controlPointsDim, nControlPoints);
 				auto [res_x2, res_y2] = Txy(lx, ly, &phishifted, controlPointsDim, nControlPoints);
-				int res_x = res_x2 - res_x1;
-				int res_y = res_y2 - res_y1;
-				pdX += res_x * forceX.getPixelValueAt(lx, ly, 0);
-				pdY += res_y * forceY.getPixelValueAt(lx, ly, 0);
+				double res_x = res_x2 - res_x1;
+				double res_y = res_y2 - res_y1;
+				pdX += res_x * forceX.getValAt(lx, ly);
+				pdY += res_y * forceY.getValAt(lx, ly);
 			}
 		}
 
@@ -73,7 +83,7 @@ std::tuple<int, int> to2DIndex(int d, dims_2D dims)
 	return std::make_tuple(x, y);
 }
 
-std::tuple<int, int> Txy(int x, int y, const std::vector<float>* const phi, dims_2D controlPointsDims, dims_2D nControlPoints)
+std::tuple<double, double> Txy(int x, int y, const std::vector<double>* const phi, dims_2D controlPointsDims, dims_2D nControlPoints)
 {
 	double i_temp = (double)x / controlPointsDims.x;
 	double j_temp = (double)y / controlPointsDims.y;
@@ -86,8 +96,8 @@ std::tuple<int, int> Txy(int x, int y, const std::vector<float>* const phi, dims
 
 	auto offset = (nControlPoints.x * nControlPoints.y);
 
-	int res_x = 0;
-	int res_y = 0;
+	double res_x = 0;
+	double res_y = 0;
 
 
 	for (int l = 1; l <= 4; l++)
@@ -125,11 +135,11 @@ double spline_basis(int i, double u)
 	}
 }
 
-std::vector<float> init_grid(dims_2D d_ctrl, dims_2D n_img)
+std::vector<double> init_grid(dims_2D d_ctrl, dims_2D n_img)
 {
 	dims_2D n_ctrl = calculateNumberOfCtrlPts(d_ctrl, n_img);
 
-	std::vector<float> phi(n_ctrl.x * n_ctrl.y * 2, 0);
+	std::vector<double> phi(n_ctrl.x * n_ctrl.y * 2, 0);
 	
 	int offset = n_ctrl.x * n_ctrl.y;
 
@@ -155,54 +165,56 @@ dims_2D calculateNumberOfCtrlPts(dims_2D d_ctrl, dims_2D n_img)
 	return n_ctrl;
 }
 
-std::tuple<ImageSimple, ImageSimple> get_displacement(const std::vector<float>* const phi, dims_2D d_ctrl, dims_2D n_ctrl, dims_2D n_img)
+std::tuple<MatrixSimple, MatrixSimple> get_displacement(const std::vector<double>* const phi, dims_2D d_ctrl, dims_2D n_ctrl, dims_2D n_img)
 {
-	ImageSimple u_x = ImageSimple(n_img.x, n_img.y, 1, 0);
-	ImageSimple u_y = ImageSimple(n_img.x, n_img.y, 1, 0);
+	MatrixSimple u_x = MatrixSimple(n_img.x, n_img.y, 0);
+	MatrixSimple u_y = MatrixSimple(n_img.x, n_img.y, 0);
 
-	for (int x = 0; x < n_img.x; x++)
+	for (int x = 1; x <= n_img.x; x++)
 	{
-		for (int y = 0; y < n_img.y; y++)
+		for (int y = 1; y <= n_img.y; y++)
 		{
 			auto [res_x, res_y] = Txy(x, y, phi, d_ctrl, n_ctrl);
-			u_x.setPixelValueAt(res_x, x, y, 0);
-			u_y.setPixelValueAt(res_y, x, y, 0);
+			u_x.setValAt(res_x, x - 1, y - 1);
+			u_y.setValAt(res_y, x - 1, y - 1);
 		}
 	}
+	/*u_x.prettyPrint();
+	u_y.prettyPrint();*/
 	return std::make_tuple(u_x, u_y);
 }
 
-void warp(ImageSimple& target, const ImageSimple const* tmpl, const ImageSimple const* disp_x, const ImageSimple const* disp_y, dims_2D n_img)
+void warp(MatrixSimple* target, const MatrixSimple const* tmpl, const MatrixSimple const* disp_x, const MatrixSimple const* disp_y, dims_2D n_img)
 {
 	for (int x = 0; x < n_img.x; x++)
 	{
 		for (int y = 0; y < n_img.y; y++)
 		{
-			auto a = get_bilinear(tmpl, disp_x->getPixelValueAt(x, y, 0), disp_y->getPixelValueAt(x, y, 0));
-			target.setPixelValueAt(
+			auto a = get_bilinear(tmpl, disp_x->getValAt(x, y), disp_y->getValAt(x, y));
+			target->setValAt(
 				a,
 				x,
-				y,
-				0
+				y
 			);
 		}
 	}
 }
 
-stbi_uc get_bilinear(const ImageSimple const* tmpl, stbi_uc x, stbi_uc y)
+double get_bilinear(const MatrixSimple const* tmpl, double x, double y)
 {
 	int intx = std::floor(x);
 	int inty = std::floor(y);
-	stbi_uc dx = x - intx;
-	stbi_uc dy = y - inty;
-	stbi_uc res = 0;
+	double dx = x - intx;
+	double dy = y - inty;
+	double res = 0;
+	auto [width, height] = tmpl->getDims();
 
-	if (intx >= 0 && intx + 1 < tmpl->getWidth() && inty >= 0 && inty + 1 < tmpl->getHeight())
+	if (intx >= 0 && intx + 1 < width && inty >= 0 && inty + 1 < height)
 	{
-		res = tmpl->getPixelValueAt(intx, inty, 0) * (1 - dx) * (1 - dy)
-			+ tmpl->getPixelValueAt(intx, inty + 1, 0) * (1 - dx) * dy
-			+ tmpl->getPixelValueAt(intx + 1, inty, 0) * dx * (1 - dy)
-			+ tmpl->getPixelValueAt(intx + 1, inty + 1, 0) * dx * dy;
+		res = tmpl->getValAt(intx, inty) * (1 - dx) * (1 - dy)
+			+ tmpl->getValAt(intx, inty + 1) * (1 - dx) * dy
+			+ tmpl->getValAt(intx + 1, inty) * dx * (1 - dy)
+			+ tmpl->getValAt(intx + 1, inty + 1) * dx * dy;
 	}
 	return res;
 }

@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <iostream>
 
-#define CLIP_PIXELS(value) value < 0 ? 0 : (value > 255 ? 255 : value)
+#define CLIP_PIXELS(value) value < 0 ? 0 : (value > 1 ? 1 : value)
 
 int ImageSimple::getWidth()
 {
@@ -53,6 +53,7 @@ ImageSimple::ImageSimple(const char* filename)
 	{
 		printf("Read %s\n", filename);
 		size = width * height * channels;
+		//transformPixelsByMinMax();
 	} else
 	{
 		printf("Failed to read %s\n", filename);
@@ -93,9 +94,80 @@ ImageSimple::ImageSimple(const ImageSimple& img) : ImageSimple(img.width, img.he
 	//memcpy(this, &img, sizeof(ImageSimple));
 }
 
+ImageSimple::ImageSimple(const MatrixSimple& mat, bool scale)
+{
+	MatrixSimple minMaxedMat = mat.getMinMaxVersion();
+	auto [width, height] = minMaxedMat.getDims();
+	this->width = width;
+	this->height = height;
+	this->channels = 1;
+	this->size = minMaxedMat.getLength();
+	pixels = reinterpret_cast<stbi_uc*>(malloc(this->size));
+	if (!pixels)
+	{
+		std::cout << "Error trying to malloc pixels with provided value" << std::endl;
+		exit(1);
+	}
+
+	if (scale)
+	{
+		for (int i = 0; i < this->size; i++)
+		{
+			pixels[i] = minMaxedMat.getValAt(i) * 255;
+		}
+	} else
+	{
+		for (int i = 0; i < this->size; i++)
+		{
+			pixels[i] = minMaxedMat.getValAt(i);
+		}
+	}
+}
+
 ImageSimple::~ImageSimple()
 {
 	stbi_image_free(pixels);
+}
+
+void ImageSimple::transformPixelsByMinMax()
+{
+	stbi_uc min = findMin();
+	stbi_uc max = findMax();
+	if (min == max)
+	{
+		std::cout << "Min and max are equal. Not transforming." << std::endl;
+		return;
+	}
+	for (int d = 0; d < getSize(); d++)
+	{
+		setPixelValueAt(((pixels[d] - min) / (max - min)), d);
+	}
+}
+
+stbi_uc ImageSimple::findMin()
+{
+	stbi_uc res = pixels[0];
+	for (int d = 0; d < getSize(); d++)
+	{
+		if (pixels[d] < res)
+		{
+			res = pixels[d];
+		}
+	}
+	return res;
+}
+
+stbi_uc ImageSimple::findMax()
+{
+	stbi_uc res = pixels[0];
+	for (int d = 0; d < getSize(); d++)
+	{
+		if (pixels[d] > res)
+		{
+			res = pixels[d];
+		}
+	}
+	return res;
 }
 
 bool ImageSimple::load(const char* filename)
@@ -104,8 +176,32 @@ bool ImageSimple::load(const char* filename)
 	return pixels != nullptr;
 }
 
-bool ImageSimple::write(const char* filename)
+bool ImageSimple::write(const char* filename, bool scale)
 {
+	//std::shared_ptr<stbi_uc> scaledPixels = std::make_shared<stbi_uc>(pixels);
+	/*size_t nPixels = getSize();
+	//stbi_uc* scaledPixels = reinterpret_cast<stbi_uc*>(malloc(nPixels));
+	stbi_uc* scaledPixels = new stbi_uc[nPixels];
+	if (!scaledPixels)
+	{
+		std::cout << "Error trying to malloc pixels with provided value" << std::endl;
+		exit(1);
+	}
+	if (scale)
+	{
+		for (int i = 0; i < nPixels; i++)
+		{
+			auto p = getPixelValueAt(i);
+			scaledPixels[i] = p * 255.00;
+		}
+	} else
+	{
+		for (int i = 0; i < nPixels; i++)
+		{
+			auto p = getPixelValueAt(i);
+			scaledPixels[i] = p;
+		}
+	}*/
 	ImageType type = get_file_type(filename);
 	int success = 0;
 
@@ -127,11 +223,13 @@ bool ImageSimple::write(const char* filename)
 	if (success != 0)
 	{
 		printf("\033[32mWrote \e[36m%s\e[0m, %d, %d, %d, %zu\n", filename, width, height, channels, size);
+		//delete[] scaledPixels;
 		return true;
 	} else
 	{
 		printf("\033[31;1m Failed to write \e[36m%s\e[0m, %d, %d, %d, %zu\n", filename, width, height, channels, size);
 		printf("Failed to write %s, %d, %d, %d, %zu\n", filename, width, height, channels, size);
+		//delete[] scaledPixels;
 		return false;
 	}
 }
@@ -182,7 +280,7 @@ stbi_uc ImageSimple::clipPixelVal(stbi_uc pixelVal)
 	return CLIP_PIXELS(pixelVal);
 }
 
-void ImageSimple::setPixelValueAt(stbi_uc pixelVal, int w, int h, int ch)
+void ImageSimple::setPixelValueAt(double pixelVal, int w, int h, int ch)
 {
 	if (w >= width || h >= height || ch >= channels)
 	{
@@ -192,13 +290,13 @@ void ImageSimple::setPixelValueAt(stbi_uc pixelVal, int w, int h, int ch)
 	setPixelValueAt(pixelVal, pos);
 }
 
-void ImageSimple::setPixelValueAt(stbi_uc pixelVal, int pos)
+void ImageSimple::setPixelValueAt(double pixelVal, int pos)
 {
 	if (pos >= size)
 	{
 		throw std::invalid_argument("Given pos >= height * width * channels");
 	}
-	pixels[pos] = static_cast<stbi_uc>(CLIP_PIXELS(pixelVal));
+	pixels[pos] = pixelVal;
 }
 
 ImageSimple ImageSimple::operator-(const ImageSimple* const subtrahend) const
@@ -400,6 +498,20 @@ float ImageSimple::ssd(ImageSimple const *trg)
 		sim += diff.pixels[k];
 	}
 	return sim / size;
+}
+
+
+MatrixSimple ImageSimple::transformToMatrix()
+{
+	MatrixSimple mat(width, height);
+	// Since MatrixSimple is currently only 2D, transform to greyscale
+	ImageSimple greyed = *this;
+	this->greyscale(&greyed);
+	for (uint64_t k = 0; k < greyed.getSize(); ++k)
+	{
+		mat.setValAt(greyed.getPixelValueAt(k), k);
+	}
+	return mat;
 }
 
 

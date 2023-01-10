@@ -96,6 +96,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ImageSimple.cpp" />
+    <ClCompile Include="MatrixSimple.cpp" />
     <ClCompile Include="PartialDerivativeImage.hpp" />
     <QtRcc Include="ImageRegistration.qrc" />
     <QtUic Include="ImageRegistration.ui" />
@@ -104,6 +105,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="MatrixSimple.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="Image.h" />
     <ClInclude Include="ImageSimple.h" />
