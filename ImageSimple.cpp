@@ -462,9 +462,9 @@ void ImageSimple::gradient(ImageSimple* gradX, ImageSimple* gradY)
 	int maskWidth = sizeof sobel_x / sizeof sobel_x[0];
 	int maskHeight = sizeof sobel_x[0] / sizeof(double);
 
-	for (uint64_t i = floor(maskWidth / 2); i < gradX->getWidth() - 1; i++)
+	for (uint64_t i = floor(maskWidth / 2); i < gradX->getWidth() - floor(maskWidth / 2); i++)
 	{
-		for (uint64_t j = floor(maskHeight / 2); j < gradX->getHeight() - 1; j++)
+		for (uint64_t j = floor(maskHeight / 2); j < gradX->getHeight() - floor(maskHeight / 2); j++)
 		{
 			
 			stbi_uc valX = 0;
